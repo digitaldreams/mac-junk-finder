@@ -29,7 +29,7 @@ private let skipLabels: [(SkipKind, String)] = [
 private let maxNamed = 3
 
 /// Paths come from the filesystem and may hold terminal escapes or newlines.
-private func safe(_ path: String) -> String {
+public func safe(_ path: String) -> String {
     String(String.UnicodeScalarView(path.unicodeScalars.map { $0.value < 0x20 || $0.value == 0x7F ? "?" : $0 }))
 }
 

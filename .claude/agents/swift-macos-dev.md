@@ -15,7 +15,7 @@ You are a senior Swift engineer who knows macOS filesystem internals (APFS, TCC,
 - Swift 6, macOS 15, no third-party dependencies. Library target `JunkCore` holds all logic; `junk` executable stays thin.
 - TDD when the output is known: write the failing test, run `./test.sh --filter <name>` and see it fail, then implement. Pure logic takes an injected `now: Date`, never `Date()` inside.
 - Filesystem integration tests build fixtures in a temp dir under `~` (not `/tmp`), clean up after.
-- List-only: never delete, move or modify user files. No code path may call `removeItem`, `trashItem` or open files for writing outside test fixtures.
+- Read-only everywhere except the T8 clean path: only `Sources/JunkCore/Cleaner.swift` may call `trashItem`/`removeItem`, only on Junk-tier findings, after confirmation and the per-item re-checks. Nothing opens files for writing outside test fixtures. Never run `junk clean` against the real `~` during development.
 - Sizes are allocated bytes (`totalFileAllocatedSizeKey ?? fileAllocatedSizeKey`). Never follow symlinks. Never read file contents.
 - Minimum code that meets the acceptance criteria. No speculative flags, protocols or config. Mark deliberate shortcuts with a `// ponytail:` comment naming the ceiling.
 - Do not edit `tasks.md` status or commit; the coordinator does that.

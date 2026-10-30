@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:JunkFinder}",
+            "name": "Debug junk",
+            "target": "junk",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug junk"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:JunkFinder}",
+            "name": "Release junk",
+            "target": "junk",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release junk"
+        }
+    ]
+}

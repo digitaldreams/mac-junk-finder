@@ -1,10 +1,23 @@
 # JunkFinder
 
-A read-only macOS command line tool that scans your home folder and lists disk space you can probably reclaim. It sorts findings into **Junk** (rebuilds itself) and **Review** (large, may be the only copy of something), with a reason next to each.
+A macOS command line tool that scans your home folder and lists disk space you can probably reclaim, and can clean the safe part on request. It sorts findings into **Junk** (rebuilds itself) and **Review** (large, may be the only copy of something), with a reason next to each.
 
-## List-only promise
+## Reading vs cleaning
 
-JunkFinder never deletes, moves or modifies anything. It does not read file contents and does not follow symlinks. You decide what to do with the list.
+`junk` on its own is read-only: it never deletes, moves or modifies anything, does not read file contents and does not follow symlinks. Only `junk clean` removes anything, and only after you confirm.
+
+## Clean
+
+```sh
+junk clean <caches|logs|dev|installers>... [--yes] [--permanent]
+```
+
+- Sections: `caches` (C1, app caches), `logs` (C2), `dev` (D1 Xcode DerivedData and simulator caches, D3 package manager caches), `installers` (old `.pkg`/`.mpkg`/`.xip` in Downloads). `big` is refused: big files are Review only, delete them by hand.
+- Junk tier only. Review findings (C1r, D4, D5, `.dmg`/`.iso`, B1) are never removed, even when their section is named.
+- The scan runs first (2-3 min), then the selected paths with sizes and the total are printed and you are asked `[y/N]`. Anything but `y`/`yes` removes nothing. `--yes` skips the prompt; without a terminal and without `--yes` it refuses (exit 2).
+- Items go to the Trash by default; space is freed when you empty it. `--permanent` deletes outright and cannot be undone.
+- Running-app guard: a cache folder named after a running app's bundle id, and Xcode's build caches while Xcode runs, are skipped and listed as "skipped: app running".
+- Right before each removal the item is re-checked (still exists, not a symlink, no symlink on the way, still under `~` on the same volume). A failed check skips the item. One failure does not stop the rest. Exit 0 if nothing failed, 1 otherwise, 2 for bad arguments.
 
 ## Run
 

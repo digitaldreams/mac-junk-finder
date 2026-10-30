@@ -23,8 +23,8 @@ You review one JunkFinder task. You know macOS storage internals and what makes 
    - Errors: EPERM → "protected", EACCES → "owner", EDEADLK → "cloud-only"; scan continues; one summary line, never 0 bytes for a blocked folder.
    - Never-flag list respected (CloudKit, FontRegistry, Spotlight, bird, CloudDocs, finder, pypoetry, org.R-project.R, kitty). `target/` needs `Cargo.toml` sibling. Staleness uses mtime / date added, not atime.
 5. **Safety and macOS security:**
-   - No delete/move/write of user files outside test fixtures; no `removeItem`/`trashItem`/write handles in `Sources/`.
-   - No `Process`/shell-out, `system`, `NSWorkspace.open`, network calls or privilege escalation; no reads of TCC.db or other apps' containers.
+   - Deletes only in `Sources/JunkCore/Cleaner.swift` (T8): `trashItem`/`removeItem` only, only Junk-tier findings, only after confirmation (or `--yes`) and the per-item re-checks (exists, not a symlink, no symlinked parent, still under root and on the root volume). Any other delete/move/write in `Sources/` = FAIL. Tests never leave items in the user's real Trash and never clean the real `~`.
+   - No `Process`/shell-out, `system`, `NSWorkspace.open`, network calls (reading `NSWorkspace.shared.runningApplications` is allowed) or privilege escalation; no reads of TCC.db or other apps' containers.
    - No file content reads in `Sources/` (metadata only), so a scan can never trigger iCloud downloads.
    - Symlinked or planted paths can't redirect the walk outside the root or onto another volume.
    - Output never leaks more than path, size and date (no file contents, no env vars).

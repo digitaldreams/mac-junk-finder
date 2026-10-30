@@ -1,6 +1,6 @@
 # JunkFinder tasks
 
-List-only Swift 6 CLI for macOS 15. Scans `~`, prints junk. Never deletes.
+Swift 6 CLI for macOS 15. Scans `~`, prints junk. Only `junk clean` removes anything (T8): Junk tier only, after confirmation.
 Reference: `docs/research.md` (rule ids C1, D4, I1, B1... come from its rule table). Where this file differs from the research, this file wins; differences are listed under v1 deviations.
 
 **Loop:** for each `todo` task in order: `swift-macos-dev` implements → `junk-reviewer` reviews → FAIL goes back to the implementer with the findings (max 2 fix rounds, then stop and ask the human) → PASS stages the work (`git add -A`) and marks the task `done`.
@@ -123,3 +123,28 @@ TDD for each behaviour change (rules and render are pure; scanner via fixtures).
 - `formatSize`: values that round to 100.0 MB/GB print "100 MB"/"100 GB". Test at 99_950_000.
 
 Deferred (not in T7): grouping C2 log files per folder, B2 path rules (Ollama/LM Studio models), scan speed.
+
+## T8 `junk clean <section>...`: remove a group of Junk findings
+- Agent: swift-macos-dev · Reviewer: junk-reviewer
+- Status: done
+
+Decided by the human: Trash by default, `--permanent` deletes outright; Junk tier only; groups by section; show the list, then ask y/N.
+
+CLI (no dependencies): `junk` prints the report as today. `junk clean <section>... [--yes] [--permanent]`.
+- Sections → rules: `caches` → C1; `logs` → C2; `dev` → D1, D3; `installers` → I1 Junk (`.pkg`/`.mpkg`/`.xip`). `big` is refused: "Big files are Review only; delete them by hand". Unknown or missing section → usage message, exit 2.
+- Only `tier == .junk` findings are ever selected. Review findings (C1r, D4, D5, I1 `.dmg`/`.iso`, B1) are never removed, even when their section is named.
+- Running-app guard (research open question 12, Mole's live-owner rule): a C1 finding whose folder name equals a running app's bundle identifier, and D1 while Xcode (`com.apple.dt.Xcode`) is running, are left out and listed as "skipped: app running". The executable reads `NSWorkspace.shared.runningApplications` and passes the bundle ids in; JunkCore stays AppKit-free.
+- Plan step is pure (`cleanPlan(result, sections, runningBundleIDs) -> (remove: [Finding], skipped: [(Finding, reason)])`), TDD.
+- Before the prompt: print each selected path with its size, the skipped ones with their reason, and the total. Prompt `Move N items (X GB) to Trash? [y/N]`; with `--permanent`: `Permanently delete N items (X GB)? This cannot be undone. [y/N]`. Anything but `y`/`yes` aborts with exit 0 and removes nothing. `--yes` skips the prompt. If stdin is not a TTY and `--yes` is absent: refuse, exit 2 (never hang, never assume yes).
+- Per-item re-checks right before removal (the scan can be minutes old): path still exists; it is not a symlink; no component between the root and it is a symlink (the resolved path equals the expected path); it is still under the root and on the root's volume. A failed check skips that item and is reported, never removed.
+- Removal: `FileManager.trashItem` (default) or `removeItem` (`--permanent`), one finding at a time. An error on one item is reported and the rest continue.
+- Summary: `Moved N items (X GB) to Trash; M skipped; K failed.` (or `Deleted …`). With Trash, add "Space is freed when you empty the Trash." Exit 0 when nothing failed, 1 otherwise.
+- Printed paths go through the same control-character sanitiser as the report.
+- README: replace the list-only promise with the clean command, its sections, Junk-only scope, Trash vs `--permanent`, the running-app guard, and that the scan runs first (2–3 min).
+
+Acceptance (TDD for the plan, the re-checks and argument parsing):
+- Plan: each section selects exactly its rules; Review findings in a named section are never selected; `big` refused; running app → skipped with reason; Xcode running → D1 skipped, D3 still selected.
+- Arguments: no section, unknown section, `big`, flags in any order, `--yes`/`--permanent` combinations.
+- Re-checks with fixtures under `~`: a finding replaced by a symlink before removal → not removed; a finding whose parent was swapped for a symlink to a dir outside the root → nothing outside the root touched; a finding deleted before removal → reported as skipped, no crash.
+- Removal with fixtures: `--permanent` removes the fixture dirs; the Trash path is tested with one tiny fixture whose `resultingItemURL` is then removed, so nothing is left in the user's real Trash.
+- No test or code path removes anything outside fixtures; the real `~` is never cleaned during development.
