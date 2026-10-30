@@ -2,13 +2,27 @@
 
 **Find the junk filling up your Mac. Clean it safely with one command.**
 
-```mermaid
-xychart-beta
-    title "Junk found on one developer's Mac: 15 GB"
-    x-axis ["Old node_modules 9.2 GB", "Old Composer vendor 4.5 GB", "App caches 1.2 GB"]
-    y-axis "GB" 0 --> 10
-    bar [9.2, 4.5, 1.2]
+```console
+$ junk
+Caches & logs
+    513 MB  junk    ~/Library/Caches/com.google.antigravity  (modified 0 d ago)  C1: app cache; quit the app before deleting
+    230 MB  junk    ~/Library/Caches/ollama  (modified 0 d ago)  C1: app cache; quit the app before deleting
+    ...
+Dev junk
+    566 MB  junk    ~/Sites/shop/node_modules  (modified 316 d ago)  D5: npm packages, unchanged for over 30 days; npm install restores them
+    419 MB  junk    ~/Sites/api/vendor  (modified 65 d ago)  D6: Composer packages, unchanged for over 30 days; composer install restores them
+    ...
+Junk (reclaimable): 15.0 GB
+Review (check before deleting): 4.7 GB
+
+$ junk clean node_modules
+...
+Move 49 items (9.2 GB) to Trash? [y/N] y
+Moved 49 items (9.2 GB) to Trash; 0 skipped; 0 failed.
+Space is freed when you empty the Trash.
 ```
+
+Scan output from one developer's Mac, trimmed (project names changed).
 
 ## What it cleans
 
