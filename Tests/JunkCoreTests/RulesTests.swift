@@ -71,6 +71,34 @@ func d3(_ p: String) {
     #expect(classify(item(".hidden/p/.build", siblings: ["Package.swift"]), now: now) == nil)
     #expect(rule(item("src/.x/node_modules", siblings: ["package.json"])) == "D5")
 }
+@Test func d5StaleNodeModulesIsJunk() {
+    // modified = newest file inside the folder (set by the scanner)
+    let old = classify(item("p/node_modules", siblings: ["package.json", "package-lock.json"], modified: 31), now: now)
+    #expect(old?.ruleID == "D5"); #expect(old?.tier == .junk)
+    #expect(classify(item("p/node_modules", siblings: ["package.json", "package-lock.json"], modified: 29), now: now)?.tier == .review)
+}
+@Test(arguments: ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock"])
+func d5AnyLockFileMakesStaleJunk(_ lock: String) {
+    #expect(classify(item("p/node_modules", siblings: ["package.json", lock], modified: 31), now: now)?.tier == .junk)
+}
+@Test func staleWithoutLockFileStaysReview() {
+    // without a lock file, reinstalling may pull different versions
+    #expect(classify(item("p/node_modules", siblings: ["package.json"], modified: 400), now: now)?.tier == .review)
+    #expect(classify(item("p/vendor", siblings: ["composer.json"], modified: 400), now: now)?.tier == .review)
+}
+@Test func d5StaleDotBuildStaysReview() {
+    #expect(classify(item("p/.build", siblings: ["Package.swift"], modified: 400), now: now)?.tier == .review)
+}
+@Test func d6ComposerVendor() {
+    let old = classify(item("p/vendor", siblings: ["composer.json", "composer.lock"], modified: 31), now: now)
+    #expect(old?.ruleID == "D6"); #expect(old?.tier == .junk); #expect(old?.category == .devJunk)
+    #expect(classify(item("p/vendor", siblings: ["composer.json", "composer.lock"], modified: 29), now: now)?.tier == .review)
+}
+@Test func d6Negatives() {
+    #expect(classify(item("p/vendor", modified: 400), now: now) == nil)
+    #expect(classify(item("p/vendor", siblings: ["go.mod"], modified: 400), now: now) == nil)
+    #expect(classify(item(".composer/vendor", siblings: ["composer.json"], modified: 400), now: now) == nil)
+}
 @Test func d5BeatsB1() {
     let m = classify(item("p/node_modules", siblings: ["package.json"], size: 2000 * MB), now: now)
     #expect(m?.ruleID == "D5")

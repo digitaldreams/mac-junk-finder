@@ -10,7 +10,7 @@ Reference: `docs/research.md` (rule ids C1, D4, I1, B1... come from its rule tab
 **v1 deviations from the research (intended, not bugs):**
 - B1 threshold 500 MB (research: 1 GB), so more candidates reach Review.
 - D4 matches only `target` with sibling `Cargo.toml`; Maven `pom.xml` is not matched.
-- D4/D5 are always Review: the project-staleness gate that would promote them to Junk is deferred.
+- D4 and `.build` (D5) are always Review. Stale `node_modules` (D5) and Composer `vendor` (D6) are Junk (T9); the gate checks the folder's newest file, not the whole project (human's call).
 - D1/D3 cover only the paths listed in T2; C2 folds in C3 (`Library/Logs/DiagnosticReports`).
 - Deny list denies whole `pypoetry` and `org.R-project.R` folders (research: `virtualenvs`, `renv` subpaths), since C1 works on direct children of `Library/Caches`.
 - No owner cleanup commands printed yet; each finding carries a one-line reason.
@@ -148,3 +148,15 @@ Acceptance (TDD for the plan, the re-checks and argument parsing):
 - Re-checks with fixtures under `~`: a finding replaced by a symlink before removal → not removed; a finding whose parent was swapped for a symlink to a dir outside the root → nothing outside the root touched; a finding deleted before removal → reported as skipped, no crash.
 - Removal with fixtures: `--permanent` removes the fixture dirs; the Trash path is tested with one tiny fixture whose `resultingItemURL` is then removed, so nothing is left in the user's real Trash.
 - No test or code path removes anything outside fixtures; the real `~` is never cleaned during development.
+
+## T9 Stale `node_modules` / Composer `vendor` → Junk; `junk clean node_modules vendor`
+- Agent: main session · Reviewer: break review
+- Status: done
+
+Decided by the human: a `node_modules` (sibling `package.json`) or `vendor` (sibling `composer.json`, new rule D6) whose newest file is more than 30 days old is Junk; with any file changed in the last 30 days it stays Review. Junk also needs a lock file next to it (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lockb`, `bun.lock`; `composer.lock`), else a reinstall may pull different versions (break review #1). Clean sections `node_modules` → D5 Junk, `vendor` → D6 Junk; `dev` does not include them.
+
+Acceptance:
+- Rules: 31 d → Junk, 29 d → Review for both; `.build` stays Review at any age; `vendor` without `composer.json` (e.g. Go `go.mod`) → nil; `.composer/vendor` (hidden top level) → nil.
+- Plan: each section selects only its stale folders; recent ones never selected.
+- Scanner: `vendor` gets sibling lookup.
+

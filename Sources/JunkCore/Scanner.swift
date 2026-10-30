@@ -43,8 +43,8 @@ private let skipList: Set<String> = [
     ".stack/programs", "Pictures", "Music", "Desktop", "Documents",
 ]
 
-// Only these names need sibling lookup (D4/D5), so avoid listing every parent directory.
-private let siblingSensitive: Set<String> = ["target", "node_modules", ".build"]
+// Only these names need sibling lookup (D4/D5/D6), so avoid listing every parent directory.
+private let siblingSensitive: Set<String> = ["target", "node_modules", ".build", "vendor"]
 
 private let keys: [URLResourceKey] = [
     .totalFileAllocatedSizeKey, .fileAllocatedSizeKey, .isDirectoryKey, .isRegularFileKey,

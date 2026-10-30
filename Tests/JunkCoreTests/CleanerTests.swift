@@ -22,6 +22,19 @@ private let allPaths = [
     "Downloads/a.pkg", "Downloads/b.dmg",
 ]
 
+/// D5/D6 finding whose newest file is `days` old.
+private func project(_ path: String, marker: String, days: Double) -> Finding {
+    let lock = marker == "composer.json" ? "composer.lock" : "package-lock.json"
+    let item = Item(path: path, kind: .dir, siblings: [marker, lock], modified: t0.addingTimeInterval(-days * 86_400))
+    return Finding(item: item, match: classify(item, now: t0)!)
+}
+
+private let projects = ScanResult(findings: [
+    project("old/node_modules", marker: "package.json", days: 40), project("new/node_modules", marker: "package.json", days: 5),
+    project("old/vendor", marker: "composer.json", days: 40), project("new/vendor", marker: "composer.json", days: 5),
+    project("old/.build", marker: "Package.swift", days: 40),
+])
+
 private func ids(_ fs: [Finding]) -> [String] { fs.map(\.item.path).sorted() }
 
 // MARK: plan
@@ -60,6 +73,17 @@ private func ids(_ fs: [Finding]) -> [String] { fs.map(\.item.path).sorted() }
         #expect(ids(p.remove) == ["Library/Caches/Homebrew"])
         #expect(p.skipped.map(\.finding.item.path) == ["Library/Developer/Xcode/DerivedData"])
     }
+    @Test func nodeModulesSelectsOnlyStaleNodeModules() {
+        let p = cleanPlan(projects, sections: [.nodeModules], runningBundleIDs: [])
+        #expect(ids(p.remove) == ["old/node_modules"])
+    }
+    @Test func vendorSelectsOnlyStaleVendor() {
+        let p = cleanPlan(projects, sections: [.vendor], runningBundleIDs: [])
+        #expect(ids(p.remove) == ["old/vendor"])
+    }
+    @Test func devLeavesProjectFoldersAlone() {
+        #expect(cleanPlan(projects, sections: [.dev], runningBundleIDs: []).remove.isEmpty)
+    }
     @Test func unnamedSectionsUntouched() {
         let p = cleanPlan(resultOf(allPaths), sections: [], runningBundleIDs: [])
         #expect(p.remove.isEmpty && p.skipped.isEmpty)
@@ -92,6 +116,7 @@ private func ids(_ fs: [Finding]) -> [String] { fs.map(\.item.path).sorted() }
     }
     @Test func yesOnly() { #expect(ok(["dev", "--yes"])?.permanent == false) }
     @Test func permanentOnly() { #expect(ok(["--permanent", "dev"])?.yes == false) }
+    @Test func projectSections() { #expect(ok(["node_modules", "vendor"])?.sections == [.nodeModules, .vendor]) }
     @Test func duplicateSectionsCollapse() { #expect(ok(["dev", "dev"])?.sections == [.dev]) }
 }
 

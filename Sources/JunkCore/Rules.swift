@@ -35,6 +35,7 @@ private let d3Caches: Set<String> = ["Homebrew", "Yarn", "pip", "CocoaPods", "co
 private let d3Paths: Set<String> = [".npm/_cacache", ".cargo/registry/cache"]
 private let c1rPrefixes = ["ms-playwright", "JetBrains", "com.jetbrains.toolbox"]
 private let installerExts: Set<String> = ["dmg", "pkg", "mpkg", "iso", "xip"]
+private let npmLocks: Set<String> = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock"]
 private let bigBytes: Int64 = 500 * 1_000_000
 
 // ponytail: first-match rule chain; fine for 9 rules, revisit if the rule count grows past ~20.
@@ -56,16 +57,29 @@ public func classify(_ item: Item, now: Date) -> Match? {
         return Match(category: .devJunk, tier: .junk, ruleID: "D3", reason: "package manager download cache; re-downloaded on demand")
     }
 
-    // D4, D5
+    // D4, D5, D6
     if item.kind == .dir {
         // Hidden top-level folders (.npm/_npx, editor extensions) are tool internals, not projects.
         let hiddenTop = parts[0].hasPrefix(".")
         if name == "target", item.siblings.contains("Cargo.toml") {
             return Match(category: .devJunk, tier: .review, ruleID: "D4", reason: "Rust build output next to Cargo.toml; rebuilt by cargo")
         }
-        if !hiddenTop, (name == "node_modules" && item.siblings.contains("package.json"))
-            || (name == ".build" && item.siblings.contains("Package.swift")) {
+        // `modified` is the newest file inside (every npm/composer install rewrites a lock file there).
+        // Without a lock file a reinstall may pull different versions, so those stay Review.
+        let stale = age(item.modified) > 30 * day
+        if !hiddenTop, name == "node_modules", item.siblings.contains("package.json") {
+            return stale && item.siblings.contains(where: npmLocks.contains)
+                ? Match(category: .devJunk, tier: .junk, ruleID: "D5", reason: "npm packages, unchanged for over 30 days; npm install restores them")
+                : Match(category: .devJunk, tier: .review, ruleID: "D5", reason: "project build/dependency folder; restored by package manager")
+        }
+        if !hiddenTop, name == ".build", item.siblings.contains("Package.swift") {
             return Match(category: .devJunk, tier: .review, ruleID: "D5", reason: "project build/dependency folder; restored by package manager")
+        }
+        if !hiddenTop, name == "vendor", item.siblings.contains("composer.json") {
+            let junk = stale && item.siblings.contains("composer.lock")
+            return Match(category: .devJunk, tier: junk ? .junk : .review, ruleID: "D6",
+                         reason: junk ?"Composer packages, unchanged for over 30 days; composer install restores them"
+                                       : "Composer packages; composer install restores them")
         }
     }
 

@@ -3,7 +3,9 @@ import Foundation
 // This file is the only place allowed to call trashItem/removeItem. Junk tier only, after the caller's
 // confirmation and per-item re-checks.
 
-public enum CleanSection: String, Sendable, CaseIterable { case caches, logs, dev, installers }
+public enum CleanSection: String, Sendable, CaseIterable {
+    case caches, logs, dev, installers, nodeModules = "node_modules", vendor
+}
 
 public struct CleanOptions: Sendable, Equatable {
     public var sections: [CleanSection]
@@ -13,7 +15,7 @@ public struct CleanOptions: Sendable, Equatable {
 
 public struct CleanArgError: Error, Sendable, Equatable { public var message: String }
 
-public let cleanUsage = "Usage: junk clean <caches|logs|dev|installers>... [--yes] [--permanent]"
+public let cleanUsage = "Usage: junk clean <caches|logs|dev|installers|node_modules|vendor>... [--yes] [--permanent]"
 
 /// `args` are the arguments after `clean`.
 public func parseCleanArgs(_ args: [String]) -> Result<CleanOptions, CleanArgError> {
@@ -38,6 +40,8 @@ private func sectionRules(_ s: CleanSection) -> Set<String> {
     case .logs: ["C2"]
     case .dev: ["D1", "D3"]
     case .installers: ["I1"]
+    case .nodeModules: ["D5"]   // only stale node_modules are Junk; .build is always Review
+    case .vendor: ["D6"]
     }
 }
 

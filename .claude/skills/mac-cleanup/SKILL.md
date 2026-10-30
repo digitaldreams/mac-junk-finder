@@ -98,7 +98,7 @@ Ask with AskUserQuestion, recommended option first. Known-good actions:
 | WhatsApp orphans | Quit WhatsApp, move orphan files/folders to Trash (keep referenced paths) |
 | Chrome AI model | Chrome Settings → System → On-device AI off (deleting the folder alone re-downloads) |
 | Claude `vm_bundles` | Quit Claude; Trash; re-downloads on next sandbox use |
-| `~` junk (caches, logs, dev, installers) | `swift run -c release junk clean <section>...` — prompts y/N itself; Trash by default |
+| `~` junk (caches, logs, dev, installers, node_modules, vendor) | `swift run -c release junk clean <section>...` — prompts y/N itself; Trash by default. `node_modules`/`vendor` only when nothing inside changed for 30+ days |
 
 ## Phase 5 — Close
 

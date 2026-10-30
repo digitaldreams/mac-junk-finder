@@ -231,4 +231,13 @@ private func touch(_ url: URL) throws {
             #expect(r.findings.map(\.item.path) == ["proj/node_modules"])
         }
     }
+
+    @Test func composerVendorFound() throws {
+        try withFixture { fx in
+            try touch(fx.root.appendingPathComponent("proj/composer.json"))
+            try touch(fx.root.appendingPathComponent("proj/vendor/autoload.php"))
+            let r = scan(root: fx.root, now: now)
+            #expect(r.findings.map(\.match.ruleID) == ["D6"])
+        }
+    }
 }
